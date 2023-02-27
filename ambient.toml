@@ -1,0 +1,8 @@
+[project]
+id = "puckle"
+name = "puckle"
+version = "0.0.1"
+
+[components]
+timer = { type = "F32", name = "Timer", description = "" }
+voxel_position = { type = "Vec3", name = "", description = "" }
