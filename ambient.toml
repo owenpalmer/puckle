@@ -4,5 +4,19 @@ name = "puckle"
 version = "0.0.1"
 
 [components]
+player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
+    "Debuggable",
+] }
 timer = { type = "F32", name = "Timer", description = "" }
-voxel_position = { type = "Vec3", name = "", description = "" }
+voxel_update = { type = "Vec3", name = "", description = "The direction that the voxel is asking to go in relative to the player. If it is a valid location, the voxel destination is set." }
+player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+voxel_direction = { type = "F32", name = "", description = "" }
+
+[concepts.voxel]
+name = "Voxel"
+description = "A player's state"
+
+[concepts.voxel.components]
+voxel_update = [0.0,0.0,0.00]
+voxel_direction = 0.0
+timer = 0.0
