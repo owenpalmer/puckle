@@ -7,6 +7,9 @@ version = "0.0.1"
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Debuggable",
 ] }
+player_mesh_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
+    "Debuggable",
+] }
 player_follower = { type = "Vec3", name = "", description = "", attributes = [
     "Debuggable",
 ] }
@@ -14,6 +17,7 @@ timer = { type = "F32", name = "Timer", description = "" }
 voxel_update = { type = "Vec3", name = "", description = "The direction that the voxel is asking to go in relative to the player. If it is a valid location, the voxel destination is set." }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
 voxel_direction = { type = "F32", name = "", description = "" }
+has_gravity = { type = "Bool", name = "", description = "" }
 
 [concepts.voxel]
 name = "Voxel"
@@ -23,3 +27,4 @@ description = "A player's state"
 voxel_update = [0.0,0.0,0.00]
 voxel_direction = 0.0
 timer = 0.0
+has_gravity = false
