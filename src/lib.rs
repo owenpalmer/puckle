@@ -1,5 +1,5 @@
 use ambient_api::{
-    global::{frametime, State, Quat},
+    global::{time, frametime, State, Quat},
     components::core::{
         game_objects::player_camera,
         player::{player, user_id},
@@ -12,7 +12,7 @@ use ambient_api::{
     prelude::*,
     rand,
 };
-use components::{timer, voxel_update, voxel_direction, player_camera_ref, player_camera_yaw};
+use components::{timer, voxel_update, voxel_direction, player_camera_ref, player_camera_yaw, player_follower};
 use concepts::{make_voxel};
 use std::cell::{RefCell};
 
@@ -108,6 +108,7 @@ pub async fn main() -> EventResult {
                     .with_default(translation())
                     .with_default(cube())
                     .with(player_camera_ref(), camera)
+                    .with(player_follower(), vec3(50.,50.,50.))
                     .with(color(), vec4(0., 0.9, 0., 1.))
             );
         }
@@ -148,12 +149,23 @@ pub async fn main() -> EventResult {
             let delay = 0.075;
             let speed = 0.1;
 
-            let camera_speed = 1.1;
+            let mut follower_speed = 0.15;
+            if time() < 3. {
+                follower_speed = 0.015;
+            }
             let player_pos = entity::get_component(player_id, translation()).unwrap();
+            let camera_pos = entity::get_component(camera_id, translation()).unwrap();
+            let follower_pos = entity::mutate_component(player_id, player_follower(), |f| *f = f.lerp(player_pos, follower_speed)).unwrap();
 
             // Get Camera Y Rotation
-            let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += delta.mouse_position.y / 150.).unwrap();
-            let player_y_rotation = Quat::from_rotation_y(camera_yaw);
+            let new_camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |yaw| {
+                let new = *yaw + (delta.mouse_position.y / 300.);
+                if new > -0.7 && new < 0.7 {
+                    *yaw = new;
+                }
+            }).unwrap();
+
+            let player_x_rotation = Quat::from_rotation_x(new_camera_yaw);
 
             // Get Camera Z Rotation
             let player_direction = entity::mutate_component(player_id, voxel_direction(), |p| *p += delta.mouse_position.x / 150.).unwrap();
@@ -161,12 +173,10 @@ pub async fn main() -> EventResult {
 
             // Apply rotations
             let camera_offset = vec3(0.,10.,5.);
-            let new_camera_pos = player_z_rotation.mul_vec3(player_y_rotation.mul_vec3(camera_offset));
-            entity::set_component(camera_id, translation(), player_pos + new_camera_pos);
+            let new_camera_offset = player_z_rotation.mul_vec3(player_x_rotation.mul_vec3(camera_offset));
+            entity::set_component(camera_id, translation(), follower_pos + new_camera_offset);
 
-            let current_lookat = entity::get_component(camera_id, lookat_center()).unwrap();
-            entity::set_component(camera_id, lookat_center(), current_lookat.lerp(player_pos, camera_speed));
-            entity::set_component(camera_id, lookat_center(), player_pos);
+            entity::set_component(camera_id, lookat_center(), follower_pos);
 
             for (keycode, direction) in [
                 (&KeyCode::W, -Vec3::Y),
