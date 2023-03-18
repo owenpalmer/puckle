@@ -7,12 +7,14 @@ use ambient_api::{
         primitives::{cube},
         transform::{lookat_center, translation, rotation, scale},
         rendering::{color, sky, sun},
+        physics::{box_collider, visualizing}
     },
-    player::KeyCode,
+    physics::{raycast_first},
+    player::{KeyCode, MouseButton},
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     prelude::*,
 };
-use components::{timer, voxel_update, voxel_direction, player_camera_ref, player_camera_yaw, player_follower, has_gravity, player_mesh_ref};
+use components::{timer, voxel_update, voxel_direction, player_camera_ref, player_camera_yaw, player_follower, has_gravity, player_mesh_ref, player_builder_ref};
 use concepts::{make_voxel};
 use std::cell::{RefCell};
 use vox_format;
@@ -63,11 +65,11 @@ fn load_level() {
     make_transformable().with_default(sun()).spawn();
     make_transformable().with_default(sky()).spawn();
 
-    Entity::new()
-        .with_merge(make_transformable())
-        .with(scale(), Vec3::ONE * 10.)
-        .with(model_from_url(), asset_url("assets/level.glb").unwrap())
-        .spawn();
+    // Entity::new()
+    //     .with_merge(make_transformable())
+    //     .with(scale(), Vec3::ONE * 10.)
+    //     .with(model_from_url(), asset_url("assets/level.glb").unwrap())
+    //     .spawn();
 
     let chunks = vox_format::from_slice(VOX_DATA).expect("Could not get voxel data");
     for model in chunks.models {
@@ -75,9 +77,10 @@ fn load_level() {
             let point = voxel.point;
             make_voxel()
                 .with_merge(make_transformable())
+                .with(box_collider(), Vec3::ONE)
                 .with(translation(), vec3(point.x as f32, point.y as f32, point.z as f32))
-                // .with_default(cube())
-                .with(color(), vec4(1., 0.9, 0., 1.))
+                .with_default(cube())
+                .with(color(), vec4(0.3, 1., 0., 1.))
                 .spawn();
         }
     }
@@ -100,6 +103,12 @@ pub async fn main() -> EventResult {
                 .with(lookat_center(), vec3(39., 39., 1.))
                 .spawn();
 
+            let buidler_box = Entity::new()
+                .with_merge(make_transformable())
+                .with_default(cube())
+                .with(color(), vec4(0.5, 0.5, 1.0, 0.5))
+                .spawn();
+
             let player_mesh = Entity::new()
                 .with_merge(make_transformable())
                 .with(model_from_url(), asset_url("assets/player.glb").unwrap())
@@ -116,6 +125,7 @@ pub async fn main() -> EventResult {
                     .with(player_camera_ref(), camera)
                     .with(player_follower(), vec3(50.,50.,50.))
                     .with(player_mesh_ref(), player_mesh)
+                    .with(player_builder_ref(), buidler_box)
                     .with(has_gravity(), true)
                     .with(color(), vec4(0.1, 0.2, 1., 1.))
             );
@@ -150,10 +160,10 @@ pub async fn main() -> EventResult {
         }
     });
 
-    query((player(), timer(), player_camera_ref(), player_mesh_ref()))
+    query((player(), timer(), player_camera_ref(), player_mesh_ref(), player_builder_ref()))
     .build()
     .each_frame(move |players| {
-        for (player_id, (_, timer_id, camera_id, mesh_id)) in players {
+        for (player_id, (_, timer_id, camera_id, mesh_id, builder)) in players {
             let Some((delta, pressed)) = player::get_raw_input_delta(player_id) else { continue; };
 
             let timer_duration = entity::get_component(player_id, timer()).unwrap();
@@ -164,7 +174,6 @@ pub async fn main() -> EventResult {
             if time() < 3. {
                 follower_speed = 0.015;
             }
-
 
             let player_pos = entity::get_component(player_id, translation()).unwrap();
             let camera_pos = entity::get_component(camera_id, translation()).unwrap();
@@ -191,6 +200,25 @@ pub async fn main() -> EventResult {
             entity::set_component(camera_id, translation(), follower_pos + new_camera_offset);
 
             entity::set_component(camera_id, lookat_center(), follower_pos);
+
+            let ray_direction = follower_pos - camera_pos;
+            let block = raycast_first(camera_pos + camera_pos.cross(Vec3::Y * 0.1), ray_direction.normalize_or_zero());
+            match block {
+                Some(value) => {
+                    entity::set_component(value.entity, color(), vec4(0.4,1.0,0.0,1.0));
+                    let block_placement = (value.position - (ray_direction * 0.1)).round();
+                    entity::set_component(builder, translation(), block_placement);
+                    if delta.mouse_buttons.contains(&MouseButton::Left) {
+                        make_voxel()
+                            .with(translation(), block_placement)
+                            .with_default(cube())
+                            .with(box_collider(), Vec3::ONE)
+                            .with(voxel_update(), Vec3::ZERO)
+                            .spawn();
+                    }
+                }
+                None => return,
+            }
 
             for (keycode, direction) in [
                 (&KeyCode::W, -Vec3::Y),

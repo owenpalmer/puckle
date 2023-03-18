@@ -4,6 +4,9 @@ name = "puckle"
 version = "0.0.1"
 
 [components]
+player_builder_ref = { type = "EntityId", name = "Builder ref", description = "", attributes = [
+    "Debuggable",
+] }
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Debuggable",
 ] }
