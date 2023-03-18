@@ -205,16 +205,18 @@ pub async fn main() -> EventResult {
             let block = raycast_first(camera_pos + camera_pos.cross(Vec3::Y * 0.1), ray_direction.normalize_or_zero());
             match block {
                 Some(value) => {
-                    entity::set_component(value.entity, color(), vec4(0.4,1.0,0.0,1.0));
                     let block_placement = (value.position - (ray_direction * 0.1)).round();
                     entity::set_component(builder, translation(), block_placement);
                     if delta.mouse_buttons.contains(&MouseButton::Left) {
                         make_voxel()
                             .with(translation(), block_placement)
                             .with_default(cube())
-                            .with(box_collider(), Vec3::ONE)
-                            .with(voxel_update(), Vec3::ZERO)
+                            .with(box_collider(), Vec3::ONE * 0.5)
+                            .with(color(), vec4(1.0, 0., 0., 1.0))
                             .spawn();
+                    }
+                    if delta.mouse_buttons.contains(&MouseButton::Right) {
+                        entity::despawn(value.entity);
                     }
                 }
                 None => return,
