@@ -75,7 +75,7 @@ fn load_level() {
             let point = voxel.point;
             make_voxel()
                 .with_merge(make_transformable())
-                .with(translation(), vec3(point.x as f32, point.y as f32, point.z as f32))
+                .with(voxel_update(), vec3(point.x as f32, point.y as f32, point.z as f32))
                 // .with_default(cube())
                 .with(color(), vec4(1., 0.9, 0., 1.))
                 .spawn();
@@ -111,7 +111,7 @@ pub async fn main() -> EventResult {
                 id,
                 make_voxel()
                     .with_merge(make_transformable())
-                    .with(translation(), vec3(39., 39., 1.))
+                    .with(voxel_update(), vec3(39., 39., 1.))
                     // .with_default(cube())
                     .with(player_camera_ref(), camera)
                     .with(player_follower(), vec3(50.,50.,50.))
@@ -123,11 +123,10 @@ pub async fn main() -> EventResult {
     });
 
     change_query(voxel_update()).requires((translation(), timer())).track_change(voxel_update()).bind(move |voxel_entities| {
-        let mut number = 0;
         for (voxel_id, _) in voxel_entities {
-            let direction = entity::get_component(voxel_id, voxel_update()).unwrap();
             let voxel_position = entity::get_component(voxel_id, translation()).unwrap();
-            let mut destination_request = voxel_position + direction.normalize_or_zero();
+
+            let mut destination_request = entity::get_component(voxel_id, voxel_update()).unwrap();
 
             let mut world = voxel_world.borrow_mut();
             if world.is_available(destination_request) {
@@ -144,7 +143,7 @@ pub async fn main() -> EventResult {
             let has_gravity = entity::get_component(voxel_id, has_gravity()).unwrap();
             if has_gravity {
                 if world.is_available(destination_request - Vec3::Z) {
-                    entity::set_component(voxel_id, voxel_update(), -Vec3::Z)
+                    entity::set_component(voxel_id, voxel_update(), destination_request - Vec3::Z)
                 }
             }
         }
@@ -164,7 +163,6 @@ pub async fn main() -> EventResult {
             if time() < 3. {
                 follower_speed = 0.015;
             }
-
 
             let player_pos = entity::get_component(player_id, translation()).unwrap();
             let camera_pos = entity::get_component(camera_id, translation()).unwrap();
@@ -199,7 +197,7 @@ pub async fn main() -> EventResult {
                 (&KeyCode::D, Vec3::X),
             ].iter() {
                 let translate = || {
-                    entity::set_component(player_id, voxel_update(), player_z_rotation.mul_vec3(*direction));
+                    entity::set_component(player_id, voxel_update(), player_pos + player_z_rotation.mul_vec3(*direction).normalize_or_zero());
                     entity::set_component(mesh_id, rotation(), Quat::from_rotation_z((player_direction / std::f32::consts::FRAC_PI_2).round() * std::f32::consts::FRAC_PI_2));
                 };
                 if delta.keys.contains(keycode) {
