@@ -17,25 +17,29 @@ use ambient_api::{
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     prelude::*,
 };
-use components::{voxel_world, voxel, player_camera_ref, player_camera_yaw};
+use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_yaw};
 
 #[main]
 pub async fn main() -> EventResult {
-    let size: i32 = 16;
+    // For now, the world is only one chunk
+    let world_id = Entity::new().with(voxel_world(), vec![]).spawn();
 
+    let size: i32 = 16;
     let mut voxels_list = vec![];
     for i in 0..size.pow(3) {
         voxels_list.push(
             Entity::new()
                 .with_default(cube())
                 .with_default(voxel())
+                .with(world_ref(), world_id)
                 .with(scale(), Vec3::ONE * 0.9)
                 .with_default(box_collider())
                 .with(translation(), vec3( (i % size) as f32, ((i/size) % size) as f32, (i / (size*size)) as f32 ))
                 .spawn()
         );
     }
-    let voxel_world = Entity::new().with(voxel_world(), voxels_list);
+
+    entity::set_component(world_id, voxel_world(), voxels_list);
 
     spawn_query((player(), user_id())).bind(move |players| {
         for (id, (_, user)) in players {
@@ -56,6 +60,7 @@ pub async fn main() -> EventResult {
                     .with(scale(), Vec3::ONE * 0.5)
                     .with_default(cube())
                     .with(player_camera_ref(), camera)
+                    .with(world_ref(), world_id)
                     .with(translation(), vec3(5.,5.,20.))
                     .with_default(physics_controlled())
                     .with(character_controller_height(), 0.9)

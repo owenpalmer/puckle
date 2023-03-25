@@ -7,6 +7,7 @@ version = "0.0.1"
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Debuggable",
 ] }
+world_ref = { type = "EntityId", name = "Voxel world ref", description = "" }
 voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
 voxel = { type = "Empty", name = "Voxel", description = "" }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
