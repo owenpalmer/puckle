@@ -11,6 +11,8 @@ world_ref = { type = "EntityId", name = "Voxel world ref", description = "" }
 voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
 voxel = { type = "Empty", name = "Voxel", description = "" }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+jumping = { type = "Bool", name = "", description = "" }
+jump_timer = { type = "F32", name = "", description = "" }
 
 # [concepts.voxel]
 # name = "Voxel"

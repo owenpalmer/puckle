@@ -17,7 +17,7 @@ use ambient_api::{
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     prelude::*,
 };
-use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_yaw};
+use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_yaw, jumping, jump_timer};
 
 #[main]
 pub async fn main() -> EventResult {
@@ -27,16 +27,46 @@ pub async fn main() -> EventResult {
     let size: i32 = 16;
     let mut voxels_list = vec![];
     for i in 0..size.pow(3) {
-        voxels_list.push(
-            Entity::new()
-                .with_default(cube())
-                .with_default(voxel())
-                .with(world_ref(), world_id)
-                .with(scale(), Vec3::ONE * 0.9)
-                .with_default(box_collider())
-                .with(translation(), vec3( (i % size) as f32, ((i/size) % size) as f32, (i / (size*size)) as f32 ))
-                .spawn()
-        );
+        let [x,y,z] = [
+            (i % size), //x
+            ((i/size) % size), //y
+            (i / (size*size)), //z
+        ];
+        // make floor
+        if(z == 0){
+            voxels_list.push(
+                Entity::new()
+                    .with_default(cube())
+                    .with_default(voxel())
+                    .with(world_ref(), world_id)
+                    .with(scale(), Vec3::ONE)
+                    .with(box_collider(), Vec3::ONE)
+                    .with(translation(), vec3(x as f32, y as f32, z as f32))
+                    .spawn()
+            );
+        } else if (z == 1 && x > 5 && x < 10) {
+            voxels_list.push(
+                Entity::new()
+                    .with_default(cube())
+                    .with_default(voxel())
+                    .with(world_ref(), world_id)
+                    .with(scale(), Vec3::ONE)
+                    .with(box_collider(), Vec3::ONE)
+                    .with(translation(), vec3(x as f32, y as f32, z as f32))
+                    .spawn()
+            );
+        } else {
+            voxels_list.push(
+                Entity::new()
+                    // .with_default(cube())
+                    .with_default(voxel())
+                    .with(world_ref(), world_id)
+                    .with(scale(), Vec3::ONE)
+                    // .with(box_collider(), Vec3::ONE)
+                    .with(translation(), vec3(x as f32, y as f32, z as f32))
+                    .spawn()
+            );
+        }
     }
 
     entity::set_component(world_id, voxel_world(), voxels_list);
@@ -56,6 +86,8 @@ pub async fn main() -> EventResult {
                 id,
                 Entity::new()
                     .with_merge(make_transformable())
+                    .with_default(jumping())
+                    .with_default(jump_timer())
                     .with(model_from_url(), asset_url("assets/player.glb").unwrap())
                     .with(scale(), Vec3::ONE * 0.5)
                     .with_default(cube())
@@ -100,6 +132,24 @@ pub async fn main() -> EventResult {
 
             entity::set_component(camera_id, lookat_center(), player_pos);
 
+
+            let is_jumping = entity::get_component(player_id, jumping()).unwrap();
+            let jump_time = entity::mutate_component(player_id, jump_timer(), |x| *x += frametime()).unwrap();
+
+            if jump_time > 0.2 {
+                entity::set_component(player_id, jumping(), false);
+            }
+            if is_jumping {
+                let jump_speed = (0.2 * f32::exp(-3. * jump_time));
+                physics::move_character(player_id, Vec3::Z * jump_speed, 0.01, frametime());
+            } else {
+                physics::move_character(player_id, Vec3::Z * -0.3, 0.01, frametime());
+            }
+            if delta.keys.contains(&KeyCode::Space) && !is_jumping {
+                entity::set_component(player_id, jumping(), true);
+                entity::set_component(player_id, jump_timer(), 0.);
+            }
+
             for (keycode, direction) in [
                 (&KeyCode::W, -Vec3::Y),
                 (&KeyCode::S, Vec3::Y),
@@ -107,7 +157,7 @@ pub async fn main() -> EventResult {
                 (&KeyCode::D, Vec3::X),
             ].iter() {
                 if pressed.keys.contains(keycode) {
-                    physics::move_character(player_id, (player_z_rotation.mul_vec3(*direction).normalize_or_zero() * speed), 0.01, frametime());
+                    physics::move_character(player_id, player_z_rotation.mul_vec3(*direction).normalize_or_zero() * speed, 0.01, frametime());
                 }
             }
         }
