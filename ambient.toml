@@ -1,0 +1,19 @@
+[project]
+id = "puckle_2"
+name = "puckle2"
+version = "0.0.1"
+
+[components]
+player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
+    "Debuggable",
+] }
+voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
+voxel = { type = "Empty", name = "Voxel", description = "" }
+player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+
+# [concepts.voxel]
+# name = "Voxel"
+# description = "A player's state"
+
+# [concepts.voxel.components]
+# voxel_update = [0.0,0.0,0.00]
