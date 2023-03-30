@@ -157,6 +157,20 @@ pub async fn main() -> ResultEmpty {
                 entity::set_component(player_id, jump_timer(), 0.);
             }
 
+            let set_animation = |name| {
+                entity::set_component(player_id, current_animation(), String::from(name));
+                entity::set_animation_controller(
+                    player_id,
+                    AnimationController {
+                        actions: &[AnimationAction {
+                            clip_url: &asset::url(format!("assets/greg.fbx/animations/{}.anim", name)).unwrap(),
+                            looping: true,
+                            weight: 1.,
+                        }],
+                        apply_base_pose: false,
+                    },
+                );
+            };
             // MOVEMENT AND ANIMATION
             for (keycode, direction) in [
                 (&KeyCode::W, -Vec3::Y),
@@ -169,35 +183,12 @@ pub async fn main() -> ResultEmpty {
                     entity::set_component(player_id, rotation(), camera_yaw_rotation);
                 }
                 if delta.keys.contains(keycode) {
-                    entity::set_component(player_id, current_animation(), String::from("Running"));
-                    entity::set_animation_controller(
-                        player_id,
-                        AnimationController {
-                            actions: &[AnimationAction {
-                                clip_url: &asset::url("assets/greg.fbx/animations/Running.anim").unwrap(),
-                                looping: true,
-                                weight: 1.,
-                            }],
-                            apply_base_pose: false,
-                        },
-                    );
+                    set_animation("Running");
                 }
             }
             if !pressed.keys.contains(&KeyCode::W) && !pressed.keys.contains(&KeyCode::A) && !pressed.keys.contains(&KeyCode::S) && !pressed.keys.contains(&KeyCode::D) {
                 if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
-                    entity::set_component(player_id, current_animation(), String::from("Idle"));
-                    entity::set_animation_controller(
-                        player_id,
-                        AnimationController {
-                            actions: &[AnimationAction {
-                                clip_url: &asset::url("assets/greg.fbx/animations/Idle.anim").unwrap(),
-                                looping: true,
-                                weight: 1.,
-                            }],
-                            apply_base_pose: false,
-                        },
-                    );
-
+                    set_animation("Idle");
                 }
             } 
 
