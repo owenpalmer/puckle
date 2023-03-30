@@ -27,11 +27,10 @@ pub async fn main() -> ResultEmpty {
     // For now, the world is only one chunk
     let world_id = Entity::new().with(voxel_world(), vec![]).spawn();
 
-    let size: i32 = 16;
-    let mut voxels_list = vec![];
-    const VOX_DATA: &[u8] = include_bytes!("../assets/island_level.vox");
-    let chunks = vox_format::from_slice(VOX_DATA).expect("Could not get voxel data");
     let mut rng = rand::thread_rng();
+    let mut voxels_list = vec![];
+
+    let chunks = vox_format::from_slice(include_bytes!("../assets/island_level.vox")).expect("Could not get voxel data");
     for model in chunks.models {
         for voxel in model.voxels {
             let point = voxel.point;
