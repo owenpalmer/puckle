@@ -179,13 +179,17 @@ pub async fn main() -> ResultEmpty {
                 (&KeyCode::D, Vec3::X),
             ].iter() {
                 if pressed.keys.contains(keycode) {
+                    // Move character in direction mapped above, relative to where the camera is pointing
                     physics::move_character(player_id, camera_yaw_rotation.mul_vec3(*direction).normalize_or_zero() * speed, 0.01, frametime());
+                    // Set character rotation to that of camera's
                     entity::set_component(player_id, rotation(), camera_yaw_rotation);
                 }
+                // If any of the WASD are pressed, set the current animation to running
                 if delta.keys.contains(keycode) {
                     set_animation("Running");
                 }
             }
+            // If none of the WASD are pressed, the the idle animation isn't already playing, set the animation to idle
             if !pressed.keys.contains(&KeyCode::W) && !pressed.keys.contains(&KeyCode::A) && !pressed.keys.contains(&KeyCode::S) && !pressed.keys.contains(&KeyCode::D) {
                 if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
                     set_animation("Idle");
