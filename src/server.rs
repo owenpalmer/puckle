@@ -121,44 +121,43 @@ pub async fn main() -> ResultEmpty {
             let camera_pos = entity::get_component(camera_id, translation()).unwrap();
             let camera_zoom = 10.0;
 
-            // Get Camera Y Rotation
+            // NEW CAMERA POSITION
             let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
+                // Calculate new pitch
                 let new = *pitch + (delta.mouse_position.y / 300.);
+                // If pitch is within bounds, set it
                 if new > -0.7 && new < 0.7 {
                     *pitch = new;
                 }
             }).unwrap();
-
             let camera_pitch_rotation = Quat::from_rotation_x(camera_pitch);
-
             // Get Camera Z Rotation
             let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += delta.mouse_position.x / 150.).unwrap();
             let camera_yaw_rotation = Quat::from_rotation_z(camera_yaw);
-
-            // Apply rotations
-            let new_camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
-            entity::set_component(camera_id, translation(), player_pos + new_camera_offset + (Vec3::Z * 5.));
-
+            // Apply rotations to find new camera position relative to player
+            let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
+            // Set new camera position. Make camera Z increase as you look down (better for building)
+            entity::set_component(camera_id, translation(), player_pos + camera_offset + (Vec3::Z * 5.));
             entity::set_component(camera_id, lookat_center(), player_pos + Vec3::Z * 2.);
 
-
+            // JUMPING
             let is_jumping = entity::get_component(player_id, jumping()).unwrap();
             let jump_time = entity::mutate_component(player_id, jump_timer(), |x| *x += frametime()).unwrap();
-
+            // If the player is past the jump time, start falling
             if jump_time > 0.2 {
                 entity::set_component(player_id, jumping(), false);
             }
             if is_jumping {
-                let jump_speed = (0.2 * f32::exp(-3. * jump_time));
-                physics::move_character(player_id, Vec3::Z * jump_speed, 0.01, frametime());
+                physics::move_character(player_id, Vec3::Z * 0.10, 0.01, frametime());
             } else {
                 physics::move_character(player_id, Vec3::Z * -0.3, 0.01, frametime());
             }
-            if delta.keys.contains(&KeyCode::Space) && !is_jumping {
+            if delta.keys.contains(&KeyCode::Space) && !is_jumping && jump_time > 0.2 {
                 entity::set_component(player_id, jumping(), true);
                 entity::set_component(player_id, jump_timer(), 0.);
             }
 
+            // MOVEMENT AND ANIMATION
             for (keycode, direction) in [
                 (&KeyCode::W, -Vec3::Y),
                 (&KeyCode::S, Vec3::Y),
@@ -184,7 +183,6 @@ pub async fn main() -> ResultEmpty {
                     );
                 }
             }
-
             if !pressed.keys.contains(&KeyCode::W) && !pressed.keys.contains(&KeyCode::A) && !pressed.keys.contains(&KeyCode::S) && !pressed.keys.contains(&KeyCode::D) {
                 if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
                     entity::set_component(player_id, current_animation(), String::from("Idle"));
