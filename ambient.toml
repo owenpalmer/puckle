@@ -1,6 +1,6 @@
 [project]
-id = "puckle_2"
-name = "puckle2"
+id = "puckle"
+name = "puckle"
 version = "0.0.1"
 
 [components]

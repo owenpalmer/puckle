@@ -1,5 +1,5 @@
 [package]
-name = "puckle_2"
+name = "puckle"
 
 edition = "2021"
 publish = false
