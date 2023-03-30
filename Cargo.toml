@@ -8,6 +8,8 @@ version = "0.0.1"
 [dependencies]
 # ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", rev = "4ac24158" }
 ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", rev = "cbbd926d" }
+rand = "0.8.5"
+vox-format = "0.1.0"
 
 [[bin]]
 name = "client"

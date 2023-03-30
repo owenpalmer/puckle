@@ -1,3 +1,4 @@
+use rand::Rng;
 use ambient_api::{
     global::{time, frametime, Quat},
     components::core::{
@@ -8,7 +9,7 @@ use ambient_api::{
         player::{player, user_id},
         primitives::{cube},
         transform::{lookat_center, translation, rotation, scale},
-        rendering::{color, sky, sun},
+        rendering::{color, sky, sun, water, fog_density, fog_height_falloff},
         physics::{
             character_controller_height, character_controller_radius, physics_controlled,
             plane_collider, box_collider, visualizing, dynamic,
@@ -28,52 +29,49 @@ pub async fn main() -> ResultEmpty {
 
     let size: i32 = 16;
     let mut voxels_list = vec![];
-    for i in 0..size.pow(3) {
-        let [x,y,z] = [
-            (i % size), //x
-            ((i/size) % size), //y
-            (i / (size*size)), //z
-        ];
-        // make floor
-        if(z == 0){
-            voxels_list.push(
-                Entity::new()
-                    .with_default(cube())
-                    .with_default(voxel())
-                    .with(world_ref(), world_id)
-                    .with(scale(), Vec3::ONE)
-                    .with(box_collider(), Vec3::ONE)
-                    .with(translation(), vec3(x as f32, y as f32, z as f32))
-                    .spawn()
-            );
-        } else if (z == 1 && x > 5 && x < 10) {
-            voxels_list.push(
-                Entity::new()
-                    .with_default(cube())
-                    .with_default(voxel())
-                    .with(world_ref(), world_id)
-                    .with(scale(), Vec3::ONE)
-                    .with(box_collider(), Vec3::ONE)
-                    .with(translation(), vec3(x as f32, y as f32, z as f32))
-                    .spawn()
-            );
-        } else {
-            voxels_list.push(
-                Entity::new()
-                    // .with_default(cube())
-                    .with_default(voxel())
-                    .with(world_ref(), world_id)
-                    .with(scale(), Vec3::ONE)
-                    // .with(box_collider(), Vec3::ONE)
-                    .with(translation(), vec3(x as f32, y as f32, z as f32))
-                    .spawn()
-            );
+    const VOX_DATA: &[u8] = include_bytes!("../assets/island_level.vox");
+    let chunks = vox_format::from_slice(VOX_DATA).expect("Could not get voxel data");
+    let mut rng = rand::thread_rng();
+    for model in chunks.models {
+        for voxel in model.voxels {
+            let point = voxel.point;
+            let random = rng.gen_range(0.9..1.0);
+            let voxel_color = match u8::from(voxel.color_index) {
+                174 => vec4(0.3, 0.2, 0.1, 1.0),
+                138 => vec4(0.12, 0.12, 0.1, 1.0),
+                253 => vec4(0.17, 0.25, 0.0, 1.0),
+                250 => vec4(0.2, 0.2, 0.2, 1.0),
+                96 => vec4(0.4, 0.3, 0.2 * random, 1.0),
+                9 => vec4(0.9, 0.5 * random, 0.1, 1.0),
+                _ => vec4(1.0, 0.0, 0.0, 1.0),
+            };
+            Entity::new()
+                .with_merge(make_transformable())
+                .with(translation(), vec3(point.x as f32, point.y as f32, (point.z as f32) - 7.))
+                .with_default(cube())
+                .with(box_collider(), Vec3::ONE)
+                .with(color(), voxel_color)
+                .spawn();
         }
     }
-
     entity::set_component(world_id, voxel_world(), voxels_list);
-    make_transformable().with_default(sun()).spawn();
+
+    // Water
+    Entity::new()
+        .with_merge(make_transformable())
+        .with_default(water())
+        .with(scale(), Vec3::ONE * 1000.)
+        .spawn();
+
+    // Spawn sky and sun
     make_transformable().with_default(sky()).spawn();
+    Entity::new()
+        .with_merge(make_transformable())
+        .with_default(sun())
+        .with(rotation(), Quat::from_rotation_y(-0.2))
+        .with_default(main_scene())
+        .with(fog_density(), 0.05)
+        .spawn();
 
     spawn_query((player(), user_id())).bind(move |players| {
         for (id, (_, user)) in players {
@@ -103,7 +101,7 @@ pub async fn main() -> ResultEmpty {
                     .with_default(cube())
                     .with(player_camera_ref(), camera)
                     .with(world_ref(), world_id)
-                    .with(translation(), vec3(5.,5.,20.))
+                    .with(translation(), vec3(20.,20.,40.))
                     .with_default(physics_controlled())
                     .with(character_controller_height(), 0.9)
                     .with(character_controller_radius(), 0.3)
@@ -139,9 +137,9 @@ pub async fn main() -> ResultEmpty {
 
             // Apply rotations
             let new_camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
-            entity::set_component(camera_id, translation(), player_pos + new_camera_offset);
+            entity::set_component(camera_id, translation(), player_pos + new_camera_offset + (Vec3::Z * 5.));
 
-            entity::set_component(camera_id, lookat_center(), player_pos);
+            entity::set_component(camera_id, lookat_center(), player_pos + Vec3::Z * 2.);
 
 
             let is_jumping = entity::get_component(player_id, jumping()).unwrap();
