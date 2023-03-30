@@ -10,13 +10,8 @@ player_camera_ref = { type = "EntityId", name = "Player camera ref", description
 world_ref = { type = "EntityId", name = "Voxel world ref", description = "" }
 voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
 voxel = { type = "Empty", name = "Voxel", description = "" }
+player_camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+current_animation = { type = "String", name = "", description = "" }
 jumping = { type = "Bool", name = "", description = "" }
 jump_timer = { type = "F32", name = "", description = "" }
-
-# [concepts.voxel]
-# name = "Voxel"
-# description = "A player's state"
-
-# [concepts.voxel.components]
-# voxel_update = [0.0,0.0,0.00]
