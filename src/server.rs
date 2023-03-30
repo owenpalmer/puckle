@@ -20,7 +20,7 @@ use ambient_api::{
     entity::{AnimationAction, AnimationController},
     prelude::*,
 };
-use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, jumping, jump_timer, current_animation};
+use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
 
 #[main]
 pub async fn main() -> ResultEmpty {
@@ -79,6 +79,7 @@ pub async fn main() -> ResultEmpty {
                 .with(aspect_ratio_from_window(), EntityId::resources())
                 .with_default(player_camera_pitch())
                 .with_default(player_camera_yaw())
+                .with(player_camera_zoom(), 10.0)
                 .with_default(fog())
                 .with(translation(), vec3(30., 25., 10.))
                 .with_default(main_scene())
@@ -118,7 +119,12 @@ pub async fn main() -> ResultEmpty {
 
             let player_pos = entity::get_component(player_id, translation()).unwrap();
             let camera_pos = entity::get_component(camera_id, translation()).unwrap();
-            let camera_zoom = 10.0;
+            let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
+                let new = *zoom - delta.mouse_wheel;
+                if new > 1. && new < 50. {
+                    *zoom = new;
+                }
+            }).unwrap();
 
             // NEW CAMERA POSITION
             let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {

@@ -12,6 +12,7 @@ voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxe
 voxel = { type = "Empty", name = "Voxel", description = "" }
 player_camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+player_camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "" }
 current_animation = { type = "String", name = "", description = "" }
 jumping = { type = "Bool", name = "", description = "" }
 jump_timer = { type = "F32", name = "", description = "" }
