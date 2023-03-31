@@ -16,3 +16,19 @@ player_camera_zoom = { type = "F32", name = "Player Camera Zoom", description = 
 current_animation = { type = "String", name = "", description = "" }
 jumping = { type = "Bool", name = "", description = "" }
 jump_timer = { type = "F32", name = "", description = "" }
+
+[messages.input]
+name = "Input"
+description = "The player's input"
+[messages.input.fields]
+w = { type = "Bool", name = "Up", description = "Whether the player is pressing the up key" }
+s = { type = "Bool", name = "Down", description = "Whether the player is pressing the down key" }
+a = { type = "Bool", name = "Left", description = "Whether the player is pressing the left key" }
+d = { type = "Bool", name = "Right", description = "Whether the player is pressing the right key" }
+jump = { type = "Bool", name = "Jump", description = "Whether the jump key changed since last frame" }
+
+no_wasd = { type = "Bool", name = "Jump", description = "Whether the jump key changed since last frame" }
+wasd_delta = { type = "Bool", name = "Jump", description = "Whether the jump key changed since last frame" }
+
+camera_rotation = { type = "Vec2", name = "Camera Rotation", description = "The rotation (radians) to rotate the camera by" }
+camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to zoom the camera by" }

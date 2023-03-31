@@ -19,6 +19,7 @@ use ambient_api::{
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     entity::{AnimationAction, AnimationController},
     prelude::*,
+    message::server::{MessageExt, Source},
 };
 use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
 
@@ -76,7 +77,7 @@ pub async fn main() -> ResultEmpty {
         for (id, (_, user)) in players {
             let camera = Entity::new()
                 .with_merge(make_perspective_infinite_reverse_camera())
-                .with(aspect_ratio_from_window(), EntityId::resources())
+                .with(aspect_ratio_from_window(), entity::resources())
                 .with_default(player_camera_pitch())
                 .with_default(player_camera_yaw())
                 .with(player_camera_zoom(), 10.0)
@@ -85,6 +86,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(main_scene())
                 .with(lookat_center(), vec3(0., 0., 0.))
                 .spawn();
+            println!("{}",id);
 
             entity::add_components(
                 id,
@@ -110,97 +112,102 @@ pub async fn main() -> ResultEmpty {
         }
     });
 
-    query((player(), player_camera_ref()))
-    .build()
-    .each_frame(move |players| {
-        for (player_id, (_, camera_id)) in players {
-            let Some((delta, pressed)) = player::get_raw_input_delta(player_id) else { continue; };
-            let speed = 0.2;
+    // TODO: find better way of doing this :)
+    fn player_jump_controller(player_id: EntityId, jump_key_delta: bool) {
+        let is_jumping = entity::get_component(player_id, jumping()).unwrap();
+        let jump_time = entity::mutate_component(player_id, jump_timer(), |x| *x += frametime()).unwrap();
+        // If the player is past the jump time, start falling
+        if jump_time > 0.2 {
+            entity::set_component(player_id, jumping(), false);
+        }
+        if is_jumping {
+            physics::move_character(player_id, Vec3::Z * 0.10, 0.01, frametime());
+        } else {
+            physics::move_character(player_id, Vec3::Z * -0.3, 0.01, frametime());
+        }
+        if jump_key_delta && !is_jumping && jump_time > 0.2 {
+            entity::set_component(player_id, jumping(), true);
+            entity::set_component(player_id, jump_timer(), 0.);
+        }
+    }
 
-            let player_pos = entity::get_component(player_id, translation()).unwrap();
-            let camera_pos = entity::get_component(camera_id, translation()).unwrap();
-            let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
-                let new = *zoom - delta.mouse_wheel;
-                if new > 1. && new < 50. {
-                    *zoom = new;
-                }
-            }).unwrap();
+    messages::Input::subscribe(|source, msg| {
+        let Source::Remote { user_id } = source else { return; };
+        let Some(player_id) = player::get_by_user_id(&user_id) else { return; };
 
-            // NEW CAMERA POSITION
-            let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
-                // Calculate new pitch
-                let new = *pitch + (delta.mouse_position.y / 300.);
-                // If pitch is within bounds, set it
-                if new > -0.7 && new < 0.7 {
-                    *pitch = new;
-                }
-            }).unwrap();
-            let camera_pitch_rotation = Quat::from_rotation_x(camera_pitch);
-            // Get Camera Z Rotation
-            let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += delta.mouse_position.x / 150.).unwrap();
-            let camera_yaw_rotation = Quat::from_rotation_z(camera_yaw);
-            // Apply rotations to find new camera position relative to player
-            let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
-            // Set new camera position. Make camera Z increase as you look down (better for building)
-            entity::set_component(camera_id, translation(), player_pos + camera_offset + (Vec3::Z * 5.));
-            entity::set_component(camera_id, lookat_center(), player_pos + Vec3::Z * 2.);
+        let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
+        let player_pos = entity::get_component(player_id, translation()).unwrap();
 
-            // JUMPING
-            let is_jumping = entity::get_component(player_id, jumping()).unwrap();
-            let jump_time = entity::mutate_component(player_id, jump_timer(), |x| *x += frametime()).unwrap();
-            // If the player is past the jump time, start falling
-            if jump_time > 0.2 {
-                entity::set_component(player_id, jumping(), false);
+        let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
+            let new = *zoom - msg.camera_zoom;
+            if new > 1. && new < 50. {
+                *zoom = new;
             }
-            if is_jumping {
-                physics::move_character(player_id, Vec3::Z * 0.10, 0.01, frametime());
-            } else {
-                physics::move_character(player_id, Vec3::Z * -0.3, 0.01, frametime());
-            }
-            if delta.keys.contains(&KeyCode::Space) && !is_jumping && jump_time > 0.2 {
-                entity::set_component(player_id, jumping(), true);
-                entity::set_component(player_id, jump_timer(), 0.);
-            }
+        }).unwrap();
 
-            let set_animation = |name| {
-                entity::set_component(player_id, current_animation(), String::from(name));
-                entity::set_animation_controller(
-                    player_id,
-                    AnimationController {
-                        actions: &[AnimationAction {
-                            clip_url: &asset::url(format!("assets/greg.fbx/animations/{}.anim", name)).unwrap(),
-                            looping: true,
-                            weight: 1.,
-                        }],
-                        apply_base_pose: false,
-                    },
-                );
-            };
-            // MOVEMENT AND ANIMATION
-            for (keycode, direction) in [
-                (&KeyCode::W, -Vec3::Y),
-                (&KeyCode::S, Vec3::Y),
-                (&KeyCode::A, -Vec3::X),
-                (&KeyCode::D, Vec3::X),
-            ].iter() {
-                if pressed.keys.contains(keycode) {
-                    // Move character in direction mapped above, relative to where the camera is pointing
-                    physics::move_character(player_id, camera_yaw_rotation.mul_vec3(*direction).normalize_or_zero() * speed, 0.01, frametime());
-                    // Set character rotation to that of camera's
-                    entity::set_component(player_id, rotation(), camera_yaw_rotation);
-                }
-                // If any of the WASD are pressed, set the current animation to running
-                if delta.keys.contains(keycode) {
-                    set_animation("Running");
-                }
+        let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
+            // Calculate new pitch
+            let new = *pitch + (msg.camera_rotation.y / 300.);
+            // If pitch is within bounds, set it
+            if new > -0.7 && new < 0.7 {
+                *pitch = new;
             }
-            // If none of the WASD are pressed, the the idle animation isn't already playing, set the animation to idle
-            if !pressed.keys.contains(&KeyCode::W) && !pressed.keys.contains(&KeyCode::A) && !pressed.keys.contains(&KeyCode::S) && !pressed.keys.contains(&KeyCode::D) {
-                if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
-                    set_animation("Idle");
-                }
-            } 
+        }).unwrap();
 
+        player_jump_controller(player_id, msg.jump);
+
+        let camera_pitch_rotation = Quat::from_rotation_x(camera_pitch);
+        // Get Camera Z Rotation
+        let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += msg.camera_rotation.x / 150.).unwrap();
+        let camera_yaw_rotation = Quat::from_rotation_z(camera_yaw);
+        // Apply rotations to find new camera position relative to player
+        let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
+        // Set new camera position. Make camera Z increase as you look down (better for building)
+        entity::set_component(camera_id, translation(), player_pos + camera_offset + (Vec3::Z * 5.));
+        entity::set_component(camera_id, lookat_center(), player_pos + Vec3::Z * 2.);
+
+        let move_character = |direction| {
+            let speed = 0.10;
+            physics::move_character(player_id, camera_yaw_rotation.mul_vec3(direction).normalize_or_zero() * speed, 0.01, frametime());
+            entity::set_component(player_id, rotation(), camera_yaw_rotation);
+        };
+
+        let set_animation = |name| {
+            entity::set_component(player_id, current_animation(), String::from(name));
+            entity::set_animation_controller(
+                player_id,
+                AnimationController {
+                    actions: &[AnimationAction {
+                        clip_url: &asset::url(format!("assets/greg.fbx/animations/{}.anim", name)).unwrap(),
+                        looping: true,
+                        weight: 1.,
+                    }],
+                    apply_base_pose: false,
+                },
+            );
+        };
+
+        // If none of the WASD are pressed, the the idle animation isn't already playing, set the animation to idle
+        if msg.no_wasd {
+            if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
+                set_animation("Idle");
+            }
+        } 
+        if msg.wasd_delta {
+            set_animation("Running");
+        }
+
+        if msg.w {
+            move_character(-Vec3::Y)
+        }
+        if msg.a {
+            move_character(-Vec3::X)
+        }
+        if msg.s {
+            move_character( Vec3::Y)
+        }
+        if msg.d {
+            move_character( Vec3::X)
         }
     });
 

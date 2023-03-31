@@ -5,11 +5,11 @@ version = 3
 [[package]]
 name = "ambient_api"
 version = "0.2.0-dev"
-source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#90959cc4bea268e4302760d85b177d0e900533c2"
+source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#dca3b11ad5bd33614615d6a56e1855ef67bdad72"
 dependencies = [
  "ambient_api_macros",
- "ambient_event_types",
  "ambient_project",
+ "ambient_shared_types",
  "anyhow",
  "byteorder",
  "data-encoding",
@@ -25,7 +25,7 @@ dependencies = [
 [[package]]
 name = "ambient_api_macros"
 version = "0.2.0-dev"
-source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#90959cc4bea268e4302760d85b177d0e900533c2"
+source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#dca3b11ad5bd33614615d6a56e1855ef67bdad72"
 dependencies = [
  "ambient_project",
  "anyhow",
@@ -37,14 +37,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "ambient_event_types"
-version = "0.2.0-dev"
-source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#90959cc4bea268e4302760d85b177d0e900533c2"
-
-[[package]]
 name = "ambient_project"
 version = "0.2.0-dev"
-source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#90959cc4bea268e4302760d85b177d0e900533c2"
+source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#dca3b11ad5bd33614615d6a56e1855ef67bdad72"
 dependencies = [
  "byteorder",
  "glam",
@@ -55,6 +50,11 @@ dependencies = [
  "thiserror",
  "toml",
 ]
+
+[[package]]
+name = "ambient_shared_types"
+version = "0.2.0-dev"
+source = "git+https://github.com/AmbientRun/Ambient.git?branch=main#dca3b11ad5bd33614615d6a56e1855ef67bdad72"
 
 [[package]]
 name = "anyhow"
