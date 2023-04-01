@@ -32,3 +32,5 @@ wasd_delta = { type = "Bool", name = "Jump", description = "Whether the jump key
 
 camera_rotation = { type = "Vec2", name = "Camera Rotation", description = "The rotation (radians) to rotate the camera by" }
 camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to zoom the camera by" }
+window_size = { type = "Vec2", name = "hey", description = "" }
+mouse_position = { type = "Vec2", name = "Mouse Position", description = "" }

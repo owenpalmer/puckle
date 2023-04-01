@@ -2,8 +2,8 @@ use rand::Rng;
 use ambient_api::{
     global::{time, frametime, Quat},
     components::core::{
-        app::main_scene,
-        camera::{aspect_ratio_from_window, fog},
+        app::{main_scene, window_physical_size},
+        camera::{aspect_ratio_from_window, fog, projection_view},
         prefab::prefab_from_url,
         model::model_from_url,
         player::{player, user_id},
@@ -20,6 +20,7 @@ use ambient_api::{
     entity::{AnimationAction, AnimationController},
     prelude::*,
     message::server::{MessageExt, Source},
+    physics::{raycast_first},
 };
 use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
 
@@ -137,6 +138,7 @@ pub async fn main() -> ResultEmpty {
 
         let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
         let player_pos = entity::get_component(player_id, translation()).unwrap();
+        let camera_pos = entity::get_component(camera_id, translation()).unwrap();
 
         let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
             let new = *zoom - msg.camera_zoom;
@@ -144,6 +146,26 @@ pub async fn main() -> ResultEmpty {
                 *zoom = new;
             }
         }).unwrap();
+
+        let ndc_x = (2.0 * msg.mouse_position.x / msg.window_size.x) - 1.0;
+        let ndc_y = 1.0 - (2.0 * msg.mouse_position.y / msg.window_size.y);
+
+        let clip_space_coords = vec4(ndc_x, ndc_y, -1.0, 1.0);
+
+        let camera_projection_view = entity::get_component(camera_id, projection_view()).unwrap();
+        let world_space_coords = camera_projection_view.inverse() * clip_space_coords;
+        let world_space_pos = vec3(world_space_coords.x, world_space_coords.y, world_space_coords.z) / world_space_coords.w;
+
+        let ray_direction = (camera_pos - world_space_pos).normalize();
+
+        let block = raycast_first(camera_pos, ray_direction);
+        match block {
+            Some(value) => {
+                entity::set_component(value.entity, color(), vec4(1.0,0.0,0.0,1.0));
+            }
+            None => (),
+        }
+
 
         let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
             // Calculate new pitch
