@@ -149,7 +149,7 @@ pub async fn main() -> ResultEmpty {
             // Calculate new pitch
             let new = *pitch + (msg.camera_rotation.y / 300.);
             // If pitch is within bounds, set it
-            if new > -0.7 && new < 0.7 {
+            if new > -0.5 && new < 0.9 {
                 *pitch = new;
             }
         }).unwrap();
