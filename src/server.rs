@@ -19,7 +19,7 @@ use ambient_api::{
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     entity::{AnimationAction, AnimationController},
     prelude::*,
-    message::server::{MessageExt, Source},
+    message::server::{MessageExt, Source, Target},
     physics::{raycast_first},
 };
 use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
@@ -87,6 +87,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(main_scene())
                 .with(lookat_center(), vec3(0., 0., 0.))
                 .spawn();
+
             println!("{}",id);
 
             entity::add_components(
@@ -132,6 +133,30 @@ pub async fn main() -> ResultEmpty {
         }
     }
 
+    messages::MouseToWorld::subscribe(|source, msg| {
+        let Source::Remote { user_id } = source else { return; };
+        let Some(player_id) = player::get_by_user_id(&user_id) else { return; };
+        let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
+        let camera_pos = entity::get_component(camera_id, translation()).unwrap();
+
+        let hey = entity::get_component(camera_id, projection_view()).unwrap();
+        let ray_direction = (camera_pos - msg.world_space_position).normalize();
+
+        let block = raycast_first(camera_pos, ray_direction);
+        match block {
+            Some(value) => {
+                if msg.left_mouse {
+                    entity::despawn(value.entity);
+                }
+                entity::mutate_component(value.entity, color(), move |color| {
+                    *color = vec4(1.0,0.0,0.0,1.0);
+                });
+            }
+            None => (),
+        }
+
+    });
+
     messages::Input::subscribe(|source, msg| {
         let Source::Remote { user_id } = source else { return; };
         let Some(player_id) = player::get_by_user_id(&user_id) else { return; };
@@ -140,32 +165,16 @@ pub async fn main() -> ResultEmpty {
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
 
+        messages::CameraProjectionView::new(
+            entity::get_component(camera_id, projection_view()).unwrap(),
+        ).send(Target::RemoteBroadcastReliable);
+
         let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
             let new = *zoom - msg.camera_zoom;
             if new > 1. && new < 50. {
                 *zoom = new;
             }
         }).unwrap();
-
-        let ndc_x = (2.0 * msg.mouse_position.x / msg.window_size.x) - 1.0;
-        let ndc_y = 1.0 - (2.0 * msg.mouse_position.y / msg.window_size.y);
-
-        let clip_space_coords = vec4(ndc_x, ndc_y, -1.0, 1.0);
-
-        let camera_projection_view = entity::get_component(camera_id, projection_view()).unwrap();
-        let world_space_coords = camera_projection_view.inverse() * clip_space_coords;
-        let world_space_pos = vec3(world_space_coords.x, world_space_coords.y, world_space_coords.z) / world_space_coords.w;
-
-        let ray_direction = (camera_pos - world_space_pos).normalize();
-
-        let block = raycast_first(camera_pos, ray_direction);
-        match block {
-            Some(value) => {
-                entity::set_component(value.entity, color(), vec4(1.0,0.0,0.0,1.0));
-            }
-            None => (),
-        }
-
 
         let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
             // Calculate new pitch
@@ -181,6 +190,8 @@ pub async fn main() -> ResultEmpty {
         let camera_pitch_rotation = Quat::from_rotation_x(camera_pitch);
         // Get Camera Z Rotation
         let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += msg.camera_rotation.x / 150.).unwrap();
+        // let camera_yaw = 1.0;
+
         let camera_yaw_rotation = Quat::from_rotation_z(camera_yaw);
         // Apply rotations to find new camera position relative to player
         let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));

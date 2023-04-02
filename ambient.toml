@@ -34,3 +34,16 @@ camera_rotation = { type = "Vec2", name = "Camera Rotation", description = "The 
 camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to zoom the camera by" }
 window_size = { type = "Vec2", name = "hey", description = "" }
 mouse_position = { type = "Vec2", name = "Mouse Position", description = "" }
+
+[messages.camera_projection_view]
+name = "CameraProjectionView"
+description = ""
+[messages.camera_projection_view.fields]
+camera_projection_view = { type = "Mat4", name = "Camera projection view", description = "" }
+
+[messages.mouse_to_world]
+name = "MouseToWorld"
+description = ""
+[messages.mouse_to_world.fields]
+world_space_position = { type = "Vec3", name = "Camera projection view", description = "" }
+left_mouse = { type = "Bool", name = "Left click", description = "" }

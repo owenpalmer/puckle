@@ -10,11 +10,30 @@ use ambient_api::{
 
 #[main]
 fn main() {
-    on(event::FRAME, |_| {
+    messages::CameraProjectionView::subscribe(move |source, msg| {
         let (delta, input) = player::get_raw_input_delta();
 
         let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
-        // println!("{}", window_size);
+
+        let ndc_x = (2.0 * input.mouse_position.x / window_size.x as f32) - 1.0;
+        let ndc_y = 1.0 - (2.0 * input.mouse_position.y / window_size.y as f32);
+        // println!("B: x:{}, y:{}", ndc_x, ndc_y);
+
+        let clip_space_coords = vec4(ndc_x, ndc_y, -0.1, 1.0);
+        let camera_projection_view = msg.camera_projection_view;
+        let world_space_coords = camera_projection_view.inverse() * clip_space_coords;
+        let world_space_position = vec3(world_space_coords.x, world_space_coords.y, world_space_coords.z) / world_space_coords.w;
+
+        messages::MouseToWorld {
+            world_space_position: world_space_position,
+            left_mouse: delta.mouse_buttons.contains(&MouseButton::Left),
+        }.send(Target::RemoteReliable);
+    });
+
+    on(event::FRAME, move |_| {
+        let (delta, input) = player::get_raw_input_delta();
+
+        let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
 
         let msg = messages::Input {
             w: input.keys.contains(&KeyCode::W),
