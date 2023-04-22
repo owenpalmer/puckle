@@ -6,7 +6,8 @@ publish = false
 version = "0.0.1"
 
 [dependencies]
-ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", branch = "main" }
+# ambient_api = { git = "https://github.com/AmbientRun/Ambient.git", branch = "main" }
+ambient_api = { path = "C:/Users/owenpalmer/rust_projects/ambient/Ambient/guest/rust/api" }
 rand = "0.8.5"
 vox-format = "0.1.0"
 

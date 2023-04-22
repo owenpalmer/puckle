@@ -8,18 +8,18 @@ use ambient_api::{
         model::model_from_url,
         player::{player, user_id},
         primitives::{cube},
-        transform::{lookat_center, translation, rotation, scale},
+        transform::{lookat_target, translation, rotation, scale},
         rendering::{color, sky, sun, water, fog_density, fog_height_falloff},
         physics::{
             character_controller_height, character_controller_radius, physics_controlled,
             plane_collider, box_collider, visualizing, dynamic,
         },
     },
-    player::KeyCode,
+    // player::KeyCode,
     concepts::{make_transformable, make_perspective_infinite_reverse_camera},
     entity::{AnimationAction, AnimationController},
     prelude::*,
-    message::server::{MessageExt, Source, Target},
+    // message::server::{MessageExt, Source, Target},
     physics::{raycast_first},
 };
 use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
@@ -85,7 +85,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(fog())
                 .with(translation(), vec3(30., 25., 10.))
                 .with_default(main_scene())
-                .with(lookat_center(), vec3(0., 0., 0.))
+                .with(lookat_target(), vec3(0., 0., 0.))
                 .spawn();
 
             println!("{}",id);
@@ -133,41 +133,16 @@ pub async fn main() -> ResultEmpty {
         }
     }
 
-    messages::MouseToWorld::subscribe(|source, msg| {
-        let Source::Remote { user_id } = source else { return; };
-        let Some(player_id) = player::get_by_user_id(&user_id) else { return; };
-        let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
-        let camera_pos = entity::get_component(camera_id, translation()).unwrap();
-
-        let hey = entity::get_component(camera_id, projection_view()).unwrap();
-        let ray_direction = (camera_pos - msg.world_space_position).normalize();
-
-        let block = raycast_first(camera_pos, ray_direction);
-        match block {
-            Some(value) => {
-                if msg.left_mouse {
-                    entity::despawn(value.entity);
-                }
-                entity::mutate_component(value.entity, color(), move |color| {
-                    *color = vec4(1.0,0.0,0.0,1.0);
-                });
-            }
-            None => (),
-        }
-
-    });
-
     messages::Input::subscribe(|source, msg| {
-        let Source::Remote { user_id } = source else { return; };
-        let Some(player_id) = player::get_by_user_id(&user_id) else { return; };
+        let Some(player_id) = source.client_entity_id() else { return; };
 
         let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
 
-        messages::CameraProjectionView::new(
-            entity::get_component(camera_id, projection_view()).unwrap(),
-        ).send(Target::RemoteBroadcastReliable);
+        // messages::CameraProjectionView::new(
+        //     entity::get_component(camera_id, projection_view()).unwrap(),
+        // ).send(Target::RemoteBroadcastReliable);
 
         let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
             let new = *zoom - msg.camera_zoom;
@@ -197,7 +172,7 @@ pub async fn main() -> ResultEmpty {
         let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
         // Set new camera position. Make camera Z increase as you look down (better for building)
         entity::set_component(camera_id, translation(), player_pos + camera_offset + (Vec3::Z * 5.));
-        entity::set_component(camera_id, lookat_center(), player_pos + Vec3::Z * 2.);
+        entity::set_component(camera_id, lookat_target(), player_pos + Vec3::Z * 2.);
 
         let move_character = |direction| {
             let speed = 0.10;
