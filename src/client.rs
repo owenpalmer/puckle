@@ -5,28 +5,19 @@ use ambient_api::{
     prelude::*,
 };
 
+// use components::{player_camera_ref};
+use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
+
 #[main]
 fn main() {
-    messages::CamInit::subscribe(|source, data| {
-        ambient_api::messages::Frame::subscribe(move |_| {
-            let input = input::get();
-            let ray = camera::screen_to_world_direction(data.camera_id, input.mouse_position);
-    
-            // Send screen ray to server
-            messages::MouseRay {
-                ray_origin: ray.origin,
-                ray_dir: ray.dir,
-            }
-            .send_server_unreliable();
-        });
-    });
-
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
+        let user_id = entity::get_component(entity::resources(), local_user_id()).unwrap();
+        let player_id = player::get_by_user_id(&user_id).unwrap();
 
         let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
 
-        let msg = messages::Input {
+        let mut msg = messages::Input {
             w: input.keys.contains(&KeyCode::W),
             a: input.keys.contains(&KeyCode::A),
             s: input.keys.contains(&KeyCode::S),
@@ -37,7 +28,15 @@ fn main() {
             camera_rotation: delta.mouse_position,
             camera_zoom: delta.mouse_wheel,
             mouse_position: input.mouse_position,
+            ray_origin: Vec3::ZERO,
+            ray_dir: Vec3::ZERO,
         };
+
+        if let Some(camera_id) = entity::get_component(player_id, player_camera_ref()) {
+            let ray = camera::screen_to_world_direction(camera_id, input.mouse_position);
+            msg.ray_origin = ray.origin;
+            msg.ray_dir = ray.dir;
+        }
         msg.send_server_unreliable();
     });
 }

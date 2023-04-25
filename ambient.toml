@@ -5,7 +5,7 @@ version = "0.0.1"
 
 [components]
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
-    "Debuggable",
+    "Networked",
 ] }
 world_ref = { type = "EntityId", name = "Voxel world ref", description = "" }
 voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
@@ -33,16 +33,5 @@ wasd_delta = { type = "Bool", name = "Jump", description = "Whether the jump key
 camera_rotation = { type = "Vec2", name = "Camera Rotation", description = "The rotation (radians) to rotate the camera by" }
 camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to zoom the camera by" }
 mouse_position = { type = "Vec2", name = "Mouse Position", description = "" }
-
-[messages.mouse_ray]
-name = "MouseRay"
-description = "The ray projected by the mouse cursor"
-[messages.mouse_ray.fields]
 ray_origin = { type = "Vec3" }
 ray_dir = { type = "Vec3" }
-
-[messages.cam_init]
-name = "CamInit"
-description = "The ray projected by the mouse cursor"
-[messages.cam_init.fields]
-camera_id = { type = "EntityId" }

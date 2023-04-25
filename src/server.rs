@@ -83,10 +83,13 @@ pub async fn main() -> ResultEmpty {
                 .with_default(player_camera_yaw())
                 .with(player_camera_zoom(), 10.0)
                 .with_default(fog())
+                .with(user_id(), user.clone())
                 .with(translation(), vec3(30., 25., 10.))
                 .with_default(main_scene())
                 .with(lookat_target(), vec3(0., 0., 0.))
                 .spawn();
+            
+            println!("server player: {}", id);
 
             entity::add_components(
                 id,
@@ -131,22 +134,15 @@ pub async fn main() -> ResultEmpty {
         }
     }
 
-    messages::MouseRay::subscribe(|source, data| {
-        if let Some(hit) = raycast_first(data.ray_origin, data.ray_dir) {
-            entity::set_component(hit.entity, color(), vec4(1.0, 0.0, 0.0, 1.0));
-        }
-    });
-
-    let mut camera_sent = false;
     messages::Input::subscribe(move|source, msg| {
         let Some(player_id) = source.clone().client_entity_id() else { return; };
         let Some(user_id) = source.client_user_id() else { return; };
 
-        let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
-        if !camera_sent {
-            messages::CamInit::new(camera_id).send_client_targeted_reliable(user_id);
-            camera_sent = true;
+        if let Some(hit) = raycast_first(msg.ray_origin, msg.ray_dir) {
+            entity::set_component(hit.entity, color(), vec4(1.0, 0.0, 0.0, 1.0));
         }
+
+        let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
 
