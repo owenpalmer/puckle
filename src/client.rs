@@ -7,6 +7,20 @@ use ambient_api::{
 
 #[main]
 fn main() {
+    messages::CamInit::subscribe(|source, data| {
+        ambient_api::messages::Frame::subscribe(move |_| {
+            let input = input::get();
+            let ray = camera::screen_to_world_direction(data.camera_id, input.mouse_position);
+    
+            // Send screen ray to server
+            messages::MouseRay {
+                ray_origin: ray.origin,
+                ray_dir: ray.dir,
+            }
+            .send_server_unreliable();
+        });
+    });
+
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
 
@@ -23,7 +37,6 @@ fn main() {
             camera_rotation: delta.mouse_position,
             camera_zoom: delta.mouse_wheel,
             mouse_position: input.mouse_position,
-            window_size: vec2(window_size.x as f32, window_size.y as f32),
         };
         msg.send_server_unreliable();
     });
