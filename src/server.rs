@@ -22,7 +22,7 @@ use ambient_api::{
     // message::server::{MessageExt, Source, Target},
     physics::{raycast_first},
 };
-use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera_pitch, player_camera_yaw, player_camera_zoom, jumping, jump_timer, current_animation};
+use components::*;
 
 #[main]
 pub async fn main() -> ResultEmpty {
@@ -83,6 +83,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(player_camera_yaw())
                 .with(player_camera_zoom(), 10.0)
                 .with_default(fog())
+                .with(camera_build_mode(), false)
                 .with(user_id(), user.clone())
                 .with(translation(), vec3(30., 25., 10.))
                 .with_default(main_scene())
@@ -157,6 +158,11 @@ pub async fn main() -> ResultEmpty {
         let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
+        
+        if msg.build_mode_toggled {
+            entity::mutate_component(camera_id, camera_build_mode(), |mode| *mode = !*mode );
+        }
+        let build_mode = entity::get_component(camera_id, camera_build_mode()).unwrap();
 
         let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
             let new = *zoom - msg.camera_zoom;

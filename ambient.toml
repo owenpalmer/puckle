@@ -13,6 +13,7 @@ voxel = { type = "Empty", name = "Voxel", description = "" }
 player_camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
 player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
 player_camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "" }
+camera_build_mode = { type = "Bool", name = "Camera Build Mode", description = "" }
 current_animation = { type = "String", name = "", description = "" }
 jumping = { type = "Bool", name = "", description = "" }
 jump_timer = { type = "F32", name = "", description = "" }
@@ -36,3 +37,4 @@ camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to
 mouse_position = { type = "Vec2", name = "Mouse Position", description = "" }
 ray_origin = { type = "Vec3" }
 ray_dir = { type = "Vec3" }
+build_mode_toggled = { type = "Bool", name = "", description = "" }
