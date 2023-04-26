@@ -21,6 +21,7 @@ jump_timer = { type = "F32", name = "", description = "" }
 name = "Input"
 description = "The player's input"
 [messages.input.fields]
+left_click = { type = "Bool", name = "Left Click", description = "" }
 w = { type = "Bool", name = "Up", description = "Whether the player is pressing the up key" }
 s = { type = "Bool", name = "Down", description = "Whether the player is pressing the down key" }
 a = { type = "Bool", name = "Left", description = "Whether the player is pressing the left key" }

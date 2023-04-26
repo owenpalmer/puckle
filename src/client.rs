@@ -18,6 +18,7 @@ fn main() {
         let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
 
         let mut msg = messages::Input {
+            left_click: input.mouse_buttons.contains(&MouseButton::Left),
             w: input.keys.contains(&KeyCode::W),
             a: input.keys.contains(&KeyCode::A),
             s: input.keys.contains(&KeyCode::S),

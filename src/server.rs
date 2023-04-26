@@ -134,12 +134,24 @@ pub async fn main() -> ResultEmpty {
         }
     }
 
+    fn add_voxel(pos: Vec3) {
+        Entity::new()
+            .with_merge(make_transformable())
+            .with(translation(), pos)
+            .with_default(cube())
+            .with(box_collider(), Vec3::ONE)
+            .with(color(), vec4(0.3, 0.3, 0.3, 1.))
+            .spawn();
+    }
+
     messages::Input::subscribe(move|source, msg| {
         let Some(player_id) = source.clone().client_entity_id() else { return; };
         let Some(user_id) = source.client_user_id() else { return; };
 
-        if let Some(hit) = raycast_first(msg.ray_origin, msg.ray_dir) {
-            entity::set_component(hit.entity, color(), vec4(1.0, 0.0, 0.0, 1.0));
+        if msg.left_click {
+            if let Some(hit) = raycast_first(msg.ray_origin, msg.ray_dir) {
+                add_voxel((hit.position - (msg.ray_dir * 0.05)).round());
+            }
         }
 
         let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
