@@ -10,15 +10,20 @@ use components::{world_ref, voxel_world, voxel, player_camera_ref, player_camera
 
 #[main]
 fn main() {
+    let mut cursor_lock = input::CursorLockGuard::new(true);
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
         let user_id = entity::get_component(entity::resources(), local_user_id()).unwrap();
         let player_id = player::get_by_user_id(&user_id).unwrap();
 
+        if !cursor_lock.auto_unlock_on_escape(&input) {
+            return;
+        }
+
         let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
 
         let mut msg = messages::Input {
-            left_click: input.mouse_buttons.contains(&MouseButton::Left),
+            left_click: delta.mouse_buttons.contains(&MouseButton::Left),
             w: input.keys.contains(&KeyCode::W),
             a: input.keys.contains(&KeyCode::A),
             s: input.keys.contains(&KeyCode::S),
