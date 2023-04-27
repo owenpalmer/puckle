@@ -3,7 +3,7 @@ use ambient_api::{
     global::{time, frametime, Quat},
     components::core::{
         app::{main_scene, window_physical_size},
-        camera::{aspect_ratio_from_window, fog, projection_view},
+        camera::*,
         prefab::prefab_from_url,
         model::model_from_url,
         player::{player, user_id},
@@ -86,7 +86,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(camera_yaw())
                 .with(camera_zoom(), 10.0)
                 .with_default(fog())
-                .with(camera_build_mode(), false)
+                .with(camera_mode(), 0)
                 .with(user_id(), user.clone())
                 .with_default(main_scene())
                 .spawn();
@@ -146,6 +146,16 @@ pub async fn main() -> ResultEmpty {
             .spawn();
     }
 
+    messages::CameraMode::subscribe(move|source, msg| {
+        if msg.mode == 1{
+            entity::set_component(msg.camera_id, fovy(), 0.01);
+            entity::set_component(msg.camera_id, camera_zoom(), -2000.);
+        } else {
+            entity::set_component(msg.camera_id, fovy(), 1.);
+            entity::set_component(msg.camera_id, camera_zoom(), -10.);
+        }
+    });
+
     messages::Input::subscribe(move|source, msg| {
         let Some(player_id) = source.clone().client_entity_id() else { return; };
         let Some(user_id) = source.client_user_id() else { return; };
@@ -160,11 +170,6 @@ pub async fn main() -> ResultEmpty {
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
         
-        if msg.build_mode_toggled {
-            entity::mutate_component(camera_id, camera_build_mode(), |mode| *mode = !*mode );
-        }
-        let build_mode = entity::get_component(camera_id, camera_build_mode()).unwrap();
-
         let camera_state = CameraState(camera_id);
 
         camera_state

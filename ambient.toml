@@ -6,8 +6,8 @@ version = "0.0.1"
 [components]
 camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
 camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
-camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "" }
-camera_build_mode = { type = "Bool", name = "Camera Build Mode", description = "" }
+camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "", attributes = ["Networked"]}
+camera_mode = { type = "U32", name = "Camera Mode", description = "", attributes = ["Networked"]}
 
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Networked",
@@ -38,4 +38,10 @@ camera_zoom = { type = "F32", name = "Camera Zoom", description = "The amount to
 mouse_position = { type = "Vec2", name = "Mouse Position", description = "" }
 ray_origin = { type = "Vec3" }
 ray_dir = { type = "Vec3" }
-build_mode_toggled = { type = "Bool", name = "", description = "" }
+
+[messages.camera_mode]
+name = "CameraMode"
+description = "Set the camera mode"
+[messages.camera_mode.fields]
+mode = { type = "U32", name = "The mode being set", description = "" }
+camera_id = { type = "EntityId", name = "The id of the camera", description = "" }

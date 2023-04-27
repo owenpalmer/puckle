@@ -1,6 +1,7 @@
 use ambient_api::{
     components::core::{
         app::{main_scene, window_physical_size},
+        camera::*
     },
     prelude::*,
 };
@@ -18,14 +19,27 @@ fn main() {
 
         let ray = camera::screen_to_world_direction(camera_id, input.mouse_position);
 
-        let build_mode_toggled = delta.keys.contains(&KeyCode::B);
-        if build_mode_toggled {
-            cursor_lock.set_locked(!cursor_lock.is_locked());
+        // 0 = First Person
+        // 1 = Build Mode
+        // 2 = Third Person
+        let mode = [&KeyCode::Key1, &KeyCode::Key2, &KeyCode::Key3]
+            .iter()
+            .position(|c| delta.keys.contains(c));
+
+        if let Some(mode) = mode {
+            let mode = mode as u32;
+            entity::set_component(camera_id, camera_mode(), mode);
+            cursor_lock.set_locked(true);
+            if mode == 1 {
+                cursor_lock.set_locked(false);
+            }
+            messages::CameraMode {
+                mode,
+                camera_id
+            }.send_server_unreliable();
         }
 
-        let window_size = entity::get_component(entity::resources(), window_physical_size()).unwrap();
-
-        let mut msg = messages::Input {
+        let msg = messages::Input {
             left_click: delta.mouse_buttons.contains(&MouseButton::Left),
             w: input.keys.contains(&KeyCode::W),
             a: input.keys.contains(&KeyCode::A),
@@ -39,7 +53,6 @@ fn main() {
             mouse_position: input.mouse_position,
             ray_origin: ray.origin,
             ray_dir: ray.dir,
-            build_mode_toggled
         };
 
         msg.send_server_unreliable();

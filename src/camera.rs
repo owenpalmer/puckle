@@ -42,6 +42,7 @@ impl CameraState {
     pub fn zoom(&self, delta: f32) -> &Self {
         entity::mutate_component(self.0, camera_zoom(), |radius| {
             // *radius = f32::clamp(*radius + delta, 1., 50.);
+            println!("{}", *radius);
             *radius += delta;
         });
         self
