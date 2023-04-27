@@ -28,7 +28,6 @@ fn main() {
 
         if let Some(mode) = mode {
             let mode = mode as u32;
-            entity::set_component(camera_id, camera_mode(), mode);
             cursor_lock.set_locked(true);
             if mode == 1 {
                 cursor_lock.set_locked(false);

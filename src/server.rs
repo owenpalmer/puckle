@@ -84,7 +84,8 @@ pub async fn main() -> ResultEmpty {
                 .with(aspect_ratio_from_window(), entity::resources())
                 .with_default(camera_pitch())
                 .with_default(camera_yaw())
-                .with(camera_zoom(), 10.0)
+                .with(camera_zoom(), -10.0)
+                .with(fovy(), 1.)
                 .with_default(fog())
                 .with(camera_mode(), 0)
                 .with(user_id(), user.clone())
@@ -147,12 +148,17 @@ pub async fn main() -> ResultEmpty {
     }
 
     messages::CameraMode::subscribe(move|source, msg| {
+        entity::set_component(msg.camera_id, camera_mode(), msg.mode);
         if msg.mode == 1{
-            entity::set_component(msg.camera_id, fovy(), 0.01);
-            entity::set_component(msg.camera_id, camera_zoom(), -2000.);
+            entity::set_component(msg.camera_id, fovy(), 0.10);
+            entity::set_component(msg.camera_id, camera_zoom(), -200.);
         } else {
             entity::set_component(msg.camera_id, fovy(), 1.);
             entity::set_component(msg.camera_id, camera_zoom(), -10.);
+        }
+        if msg.mode == 2 {
+            entity::set_component(msg.camera_id, fovy(), 1.7);
+            entity::set_component(msg.camera_id, camera_zoom(), 1.);
         }
     });
 
@@ -169,13 +175,20 @@ pub async fn main() -> ResultEmpty {
         let camera_id = entity::get_component(player_id, player_camera_ref()).unwrap();
         let player_pos = entity::get_component(player_id, translation()).unwrap();
         let camera_pos = entity::get_component(camera_id, translation()).unwrap();
+        let camera_mode = entity::get_component(camera_id, camera_mode()).unwrap();
         
         let camera_state = CameraState(camera_id);
 
-        camera_state
-            .rotate(msg.camera_rotation)
-            .zoom(msg.camera_zoom)
-            .translate_around_origin(player_pos);
+        if camera_mode == 1 {
+            camera_state
+                .zoom(msg.camera_zoom * 10.)
+                .isometric_view(player_pos);
+        } else {
+            camera_state
+                .rotate(msg.camera_rotation)
+                .zoom(msg.camera_zoom)
+                .translate_around_origin(player_pos + Vec3::Z * 2.);
+        }
 
         player_jump_controller(player_id, msg.jump);
 

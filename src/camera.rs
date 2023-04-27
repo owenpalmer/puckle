@@ -6,6 +6,13 @@ use crate::components::{
 
 pub struct CameraState(pub EntityId);
 impl CameraState {
+    pub fn isometric_view(&self, origin: Vec3) -> &Self {
+        let rot = self.get_rotation();
+        let offset = rot.mul_vec3(Vec3::Z * self.get_zoom());
+        let position = origin + offset.round();
+        entity::set_component(self.0, translation(), position);
+        self
+    }
     pub fn translate_around_origin(&self, origin: Vec3) -> &Self {
         let rot = self.get_rotation();
         let offset = rot.mul_vec3(Vec3::Z * self.get_zoom());
@@ -42,7 +49,6 @@ impl CameraState {
     pub fn zoom(&self, delta: f32) -> &Self {
         entity::mutate_component(self.0, camera_zoom(), |radius| {
             // *radius = f32::clamp(*radius + delta, 1., 50.);
-            println!("{}", *radius);
             *radius += delta;
         });
         self
