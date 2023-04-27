@@ -168,6 +168,11 @@ pub async fn main() -> ResultEmpty {
 
         if msg.left_click {
             if let Some(hit) = raycast_first(msg.ray_origin, msg.ray_dir) {
+                entity::despawn(hit.entity);
+            }
+        }
+        if msg.right_click {
+            if let Some(hit) = raycast_first(msg.ray_origin, msg.ray_dir) {
                 add_voxel((hit.position - (msg.ray_dir * 0.05)).round());
             }
         }

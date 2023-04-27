@@ -40,6 +40,7 @@ fn main() {
 
         let msg = messages::Input {
             left_click: delta.mouse_buttons.contains(&MouseButton::Left),
+            right_click: delta.mouse_buttons.contains(&MouseButton::Right),
             w: input.keys.contains(&KeyCode::W),
             a: input.keys.contains(&KeyCode::A),
             s: input.keys.contains(&KeyCode::S),
