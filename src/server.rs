@@ -24,6 +24,9 @@ use ambient_api::{
 };
 use components::*;
 
+use camera::CameraState;
+mod camera;
+
 #[main]
 pub async fn main() -> ResultEmpty {
     // For now, the world is only one chunk
@@ -85,9 +88,7 @@ pub async fn main() -> ResultEmpty {
                 .with_default(fog())
                 .with(camera_build_mode(), false)
                 .with(user_id(), user.clone())
-                .with(translation(), vec3(30., 25., 10.))
                 .with_default(main_scene())
-                .with(lookat_target(), vec3(0., 0., 0.))
                 .spawn();
             
             println!("server player: {}", id);
@@ -164,40 +165,20 @@ pub async fn main() -> ResultEmpty {
         }
         let build_mode = entity::get_component(camera_id, camera_build_mode()).unwrap();
 
-        let camera_zoom = entity::mutate_component(camera_id, player_camera_zoom(), |zoom| {
-            let new = *zoom - msg.camera_zoom;
-            if new > 1. && new < 50. {
-                *zoom = new;
-            }
-        }).unwrap();
+        let camera_state = CameraState(camera_id);
 
-        let camera_pitch = entity::mutate_component(camera_id, player_camera_pitch(), |pitch| {
-            // Calculate new pitch
-            let new = *pitch + (msg.camera_rotation.y / 300.);
-            // If pitch is within bounds, set it
-            if new > -0.5 && new < 0.9 {
-                *pitch = new;
-            }
-        }).unwrap();
+        camera_state
+            .rotate(msg.camera_rotation)
+            .zoom(msg.camera_zoom)
+            .translate_around_origin(player_pos);
 
         player_jump_controller(player_id, msg.jump);
 
-        let camera_pitch_rotation = Quat::from_rotation_x(camera_pitch);
-        // Get Camera Z Rotation
-        let camera_yaw = entity::mutate_component(camera_id, player_camera_yaw(), |p| *p += msg.camera_rotation.x / 150.).unwrap();
-        // let camera_yaw = 1.0;
-
-        let camera_yaw_rotation = Quat::from_rotation_z(camera_yaw);
-        // Apply rotations to find new camera position relative to player
-        let camera_offset = camera_yaw_rotation.mul_vec3(camera_pitch_rotation.mul_vec3(Vec3::Y * camera_zoom));
-        // Set new camera position. Make camera Z increase as you look down (better for building)
-        entity::set_component(camera_id, translation(), player_pos + camera_offset + (Vec3::Z * 5.));
-        entity::set_component(camera_id, lookat_target(), player_pos + Vec3::Z * 2.);
-
-        let move_character = |direction| {
+        let move_character = move |direction| {
             let speed = 0.10;
-            physics::move_character(player_id, camera_yaw_rotation.mul_vec3(direction).normalize_or_zero() * speed, 0.01, frametime());
-            entity::set_component(player_id, rotation(), camera_yaw_rotation);
+            let player_direction = Quat::from_rotation_z(camera_state.get_yaw());
+            entity::set_component(player_id, rotation(), player_direction);
+            physics::move_character(player_id, player_direction.mul_vec3(direction).normalize_or_zero() * speed, 0.01, frametime());
         };
 
         let set_animation = |name| {
@@ -215,7 +196,7 @@ pub async fn main() -> ResultEmpty {
             );
         };
 
-        // If none of the WASD are pressed, the the idle animation isn't already playing, set the animation to idle
+        // // If none of the WASD are pressed, the the idle animation isn't already playing, set the animation to idle
         if msg.no_wasd {
             if entity::get_component(player_id, current_animation()).unwrap() != String::from("Idle") {
                 set_animation("Idle");
