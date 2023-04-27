@@ -4,16 +4,17 @@ name = "puckle"
 version = "0.0.1"
 
 [components]
+camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
+camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
+camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "" }
+camera_build_mode = { type = "Bool", name = "Camera Build Mode", description = "" }
+
 player_camera_ref = { type = "EntityId", name = "Player camera ref", description = "", attributes = [
     "Networked",
 ] }
 world_ref = { type = "EntityId", name = "Voxel world ref", description = "" }
 voxel_world = { type = { type = "Vec", element_type = "EntityId" }, name = "Voxel World", description = "" }
 voxel = { type = "Empty", name = "Voxel", description = "" }
-player_camera_pitch = { type = "F32", name = "Player Camera Pitch", description = "" }
-player_camera_yaw = { type = "F32", name = "Player Camera Yaw", description = "" }
-player_camera_zoom = { type = "F32", name = "Player Camera Zoom", description = "" }
-camera_build_mode = { type = "Bool", name = "Camera Build Mode", description = "" }
 current_animation = { type = "String", name = "", description = "" }
 jumping = { type = "Bool", name = "", description = "" }
 jump_timer = { type = "F32", name = "", description = "" }
