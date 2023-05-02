@@ -16,12 +16,17 @@ fn main() {
         let user_id = entity::get_component(entity::resources(), local_user_id()).unwrap();
         let player_id = player::get_by_user_id(&user_id).unwrap();
         let Some(camera_id) = entity::get_component(player_id, player_camera_ref()) else { return; };
+        let Some(camera_mode) = entity::get_component(camera_id, camera_mode()) else { return; };
 
-        let ray = camera::screen_to_world_direction(camera_id, input.mouse_position);
+        let mut screen_pos = camera::screen_to_clip_space(input.mouse_position);
+        if camera_mode == 0  || camera_mode == 2 {
+            screen_pos = Vec2::ZERO;
+        }
+        let ray = camera::clip_space_ray(camera_id, screen_pos);
 
-        // 0 = First Person
+        // 0 = Third Person
         // 1 = Build Mode
-        // 2 = Third Person
+        // 2 = First Person
         let mode = [&KeyCode::Key1, &KeyCode::Key2, &KeyCode::Key3]
             .iter()
             .position(|c| delta.keys.contains(c));
