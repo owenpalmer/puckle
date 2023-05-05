@@ -1,6 +1,6 @@
 use ambient_api::{
     components::core::{
-        app::{main_scene, window_physical_size},
+        app::{main_scene, window_physical_size, window_logical_size},
         camera::*
     },
     prelude::*,
@@ -8,8 +8,28 @@ use ambient_api::{
 
 use components::*;
 
+#[element_component]
+fn App(_hooks: &mut Hooks) -> Element {
+    let window_size = entity::get_component(entity::resources(), window_logical_size()).unwrap();
+    let center_x = window_size.x as f32 / 2.;
+    let center_y = window_size.y as f32 / 2.;
+    Group::el([
+        Line.el()
+            .with(line_from(), vec3(center_x - 10., center_y, 0.))
+            .with(line_to(), vec3(center_x + 10., center_y, 0.))
+            .with(line_width(), 2.)
+            .with(background_color(), vec4(1., 1., 1., 1.)),
+        Line.el()
+            .with(line_from(), vec3(center_x, center_y - 10., 0.))
+            .with(line_to(), vec3(center_x, center_y + 10., 0.))
+            .with(line_width(), 2.)
+            .with(background_color(), vec4(1., 1., 1., 1.)),
+    ])
+}
+
 #[main]
 fn main() {
+    App.el().spawn_interactive();
     let mut cursor_lock = input::CursorLockGuard::new(true);
     ambient_api::messages::Frame::subscribe(move |_| {
         let (delta, input) = input::get_delta();
